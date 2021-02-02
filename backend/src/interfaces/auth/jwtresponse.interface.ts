@@ -1,5 +1,5 @@
 
 export interface JWTResponse {
-    jwt: string;
-    expires: Date;
+    access_token: string;
+    expiresIn: Date;
 }
