@@ -14,10 +14,7 @@ export class AuthController {
     @HttpCode(202)
     @Post('login')
     login(@Req() request: Request): JWTResponse {
-        return {
-            jwt: 'jwt',
-            expires: new Date()
-        };
+        return this.authService.login(request.body.user!);
     }
 
 }
