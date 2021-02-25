@@ -1,6 +1,7 @@
 import { Injectable, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
 import { LoginCredentials } from '../interfaces/auth/logincredential.interface';
+import { RegisterCredentials } from '../interfaces/auth/registercredential.interface';
 import { AuthNetworkingService } from './authnetworking.service';
 
 @Injectable({
@@ -8,12 +9,18 @@ import { AuthNetworkingService } from './authnetworking.service';
 })
 export class AuthService implements OnInit {
 
-  	public readonly AuthEvents: Subject<AuthEvent> = new Subject<AuthEvent>();
+    public readonly AuthEffects: Subject<AuthEffect> = new Subject<AuthEffect>();
+    
+    
+    public get logedIn() : boolean {
+      this.loadFromLocalStoreage();
+      return this.authStore.logedin;
+    }
+    
 
   private authStore: AuthStore ={
     logedin: false,
-    jwt: undefined,
-    expires: undefined
+    access_token: undefined,
   };
 
   constructor(private authNetworking: AuthNetworkingService) { }
@@ -24,9 +31,17 @@ export class AuthService implements OnInit {
 
   public login(credentials: LoginCredentials): void {
     this.authNetworking.login(credentials).subscribe(res => {
-      this.authStore = {logedin: true, jwt: res.jwt, expires: new Date(res.expires)};
+      this.authStore = { logedin: true, access_token: res.body?.access_token,};
       this.safeToLocalStoreage();
-      this.AuthEvents.next(AuthEvent.LoginSuccess);
+      this.AuthEffects.next({ authevent: AuthEvent.LoginSuccess });
+    }, error => {
+      this.AuthEffects.next({ authevent: AuthEvent.LoginFail, payload: error.error});
+    });
+  }
+
+  public register(credentials: RegisterCredentials): void {
+    this.authNetworking.register(credentials).subscribe(res => {
+      this.login({...credentials});
     });
   }
 
@@ -36,28 +51,34 @@ export class AuthService implements OnInit {
   }
 
   private safeToLocalStoreage(): void {
-    localStorage.setItem('jwt', this.authStore.jwt ?? '');
-    localStorage.setItem('expires', this.authStore.expires?.toISOString() || '');
+    localStorage.setItem('access_token', this.authStore.access_token ?? '');
   }
 
   private loadFromLocalStoreage(): void {
     this.authStore = { logedin: false };
-    this.authStore.jwt = localStorage.getItem('jwt') ?? undefined;
-    this.authStore.expires = new Date(localStorage.getItem('expires') || '') ?? undefined;
-    if(this.authStore.jwt !== null && this.authStore.jwt !== undefined && this.authStore.jwt !== '' && this.authStore.expires !== null && this.authStore.expires !== undefined) {
+    this.authStore.access_token = localStorage.getItem('access_token') ?? undefined;
+    if(this.authStore.access_token !== null && this.authStore.access_token !== undefined && this.authStore.access_token !== '') {
       this.authStore.logedin = true;
+      console.log(this.authStore)
     }
   }
 
 }
 
+export interface AuthEffect {
+  authevent: AuthEvent;
+  payload?: any;
+}
+
 export enum AuthEvent {
   LoginSuccess,
-  LoginFail
+  LoginFail,
+  RegisterSuccess,
+  RegisterFail,
+  RegisterAndLoginSuccess,
 }
 
 interface AuthStore {
   logedin: boolean;
-  jwt?: string;
-  expires?: Date;
+  access_token?: string;
 }

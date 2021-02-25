@@ -19,6 +19,13 @@ export class UserService {
   ];
 
   async findOne(username: string): Promise<User | undefined> {
+    console.log(this.users)
     return this.users.find((user) => user.username === username);
   }
+
+  async addOne(user: User): Promise<void> {
+    const newUser = { ...user, id: user.username };
+    this.users.push(newUser);
+  }
+
 }

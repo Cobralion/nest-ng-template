@@ -28,6 +28,9 @@
                  Remember me
                 </label>
               </div>
+              <div class="field" *ngIf="failMessage">
+                <label for="" class="label">{{ failMessage }}</label>
+              </div>
               <div class="field">
                 <button class="button is-success">
                   Login
